@@ -1,0 +1,548 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#0f766e" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=Sora:wght@500;600;700;800&display=swap" rel="stylesheet" />
+    <link rel="manifest" href="manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="assets/icons/icon-192.png" />
+    <link rel="stylesheet" href="styles.css" />
+    <title>Barangay San Isidro PWA Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="min-h-screen">
+    <div class="background-orb orb-1"></div>
+    <div class="background-orb orb-2"></div>
+    <div class="aurora-ribbon ribbon-a"></div>
+    <div class="aurora-ribbon ribbon-b"></div>
+
+    <header class="site-header">
+      <div class="header-shell mx-auto w-full max-w-6xl px-4 py-3 sm:px-6 lg:px-10">
+        <div class="header-top-row">
+          <a href="#welcomePage" class="brand-wrap" aria-label="Go to homepage">
+            <img src="images/logo.png" alt="Barangay San Isidro official logo" class="brand-logo" />
+            <span class="brand-text-wrap">
+              <span class="brand-kicker">Barangay San Isidro</span>
+              <span class="brand-title">Safety Portal</span>
+            </span>
+          </a>
+
+          <div class="header-tools">
+            <div class="header-menu-shell">
+            <button
+              id="headerMenuToggleBtn"
+              type="button"
+              class="header-menu-toggle"
+              aria-label="Open account and language menu"
+              aria-expanded="false"
+              aria-controls="headerMenuDropdown"
+            >
+              <span class="burger-line"></span>
+              <span class="burger-line"></span>
+              <span class="burger-line"></span>
+            </button>
+
+              <div id="headerMenuDropdown" class="header-menu-dropdown app-hidden" aria-label="Header controls">
+                <label class="lang-switch-wrap" for="languageSelect">
+                  <span data-i18n="language">Language</span>
+                  <select id="languageSelect" class="lang-switch">
+                    <option value="en">English</option>
+                    <option value="fil">Filipino</option>
+                    <option value="ceb">Cebuano</option>
+                  </select>
+                </label>
+
+                <div id="headerAuthGroup" class="header-auth-group">
+                  <button id="welcomeSignInBtn" type="button" class="header-auth-btn">Sign In</button>
+                  <button id="welcomeSignUpBtn" type="button" class="header-auth-btn header-auth-btn-primary">Sign Up</button>
+                </div>
+
+                <div id="headerUserGroup" class="header-user-group app-hidden" aria-live="polite">
+                  <span id="headerUserName" class="header-user-chip"></span>
+                  <button id="headerSignOutBtn" type="button" class="header-signout-btn">Sign Out</button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <p class="header-assist-text" data-i18n="headerAssist">Fast digital support for all constituents</p>
+      </div>
+    </header>
+
+    <section id="welcomePage" class="landing-hero">
+      <div class="landing-overlay"></div>
+      <div class="mx-auto flex w-full max-w-6xl items-start px-4 pb-6 pt-8 sm:px-6 lg:px-10">
+        <div class="hero-card glass-panel p-6 sm:p-8">
+          <p class="hero-eyebrow">Barangay San Isidro, Bohol</p>
+          <h1 class="hero-title">Barangay360 Digital Service Platform</h1>
+          <p class="hero-text" data-i18n="heroText">
+            Report incidents quickly, find emergency support offline, and stay connected with trusted local officials through a secure, resilient community dashboard.
+          </p>
+          <div class="mt-5 flex flex-wrap gap-3">
+            <button id="heroSignInBtn" type="button" class="hero-cta">Sign In</button>
+            <button id="heroSignUpBtn" type="button" class="hero-cta hero-cta-secondary">Create Account</button>
+            <a href="#welcomeAbout" class="hero-cta hero-cta-tertiary">Learn More</a>
+          </div>
+          <div class="hero-stat-grid">
+            <article class="hero-stat-card">
+              <p class="hero-stat-value">5</p>
+              <p class="hero-stat-label">Actor Portals</p>
+            </article>
+            <article class="hero-stat-card">
+              <p class="hero-stat-value">24/7</p>
+              <p class="hero-stat-label">Incident Intake</p>
+            </article>
+            <article class="hero-stat-card">
+              <p class="hero-stat-value">Offline</p>
+              <p class="hero-stat-label">Continuity Ready</p>
+            </article>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="welcomeAbout" class="welcome-section">
+      <div class="mx-auto w-full max-w-6xl px-4 py-8 sm:px-6 lg:px-10">
+        <div class="welcome-grid">
+          <article class="glass-panel p-6">
+            <p class="welcome-kicker">Introduction</p>
+            <h2 class="welcome-title">Professional Digital Front Door For Every Barangay Actor</h2>
+            <p class="welcome-text">
+              From residents and secretaries to tanod officers and administrators, every user starts in one trusted portal, signs in securely, and gets role-focused access to the right tools.
+            </p>
+          </article>
+          <article class="glass-panel p-6">
+            <p class="welcome-kicker">About</p>
+            <h2 class="welcome-title">Designed For Faster Service And Better Coordination</h2>
+            <p class="welcome-text">
+              The platform modernizes incident intake, emergency communication, and records visibility while preserving offline operations during connectivity interruptions.
+            </p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <main id="dashboardApp" class="mx-auto max-w-6xl p-4 sm:p-6 lg:p-10 app-hidden">
+      <section id="about" class="glass-panel mb-6 p-6">
+        <p class="text-sm tracking-[0.2em] text-blue-900/70">ABOUT THIS PLATFORM</p>
+        <h2 class="section-heading mt-2 text-2xl font-bold text-blue-950 sm:text-3xl">
+          Trusted Digital Support For Every Resident
+        </h2>
+        <p class="mt-3 max-w-4xl text-blue-900/80">
+          This portal is designed to support fast reporting, reliable emergency communication, and continuity during unstable internet conditions. It keeps essential services available, even offline, so residents can get help when it matters most.
+        </p>
+      </section>
+
+      <section id="quickAccessSection" class="action-cards-section glass-panel mb-6 p-6" aria-label="Quick access sections">
+        <div class="mb-4">
+          <p class="text-sm tracking-[0.2em] text-blue-900/70">QUICK ACCESS</p>
+          <h2 class="mt-2 text-2xl font-bold text-blue-950 sm:text-3xl">Navigate Services Easily</h2>
+          <p class="mt-2 text-sm text-blue-900/80">Use these cards to jump directly to the service you need.</p>
+        </div>
+
+        <div class="action-cards-grid">
+          <a href="#about" class="action-card" data-section="about">
+            <p class="action-card-title">About</p>
+            <p class="action-card-text">Learn what this platform provides for the community.</p>
+          </a>
+          <a href="#incident-reporter" class="action-card" data-section="incident-reporter">
+            <p class="action-card-title">Report Incident</p>
+            <p class="action-card-text">Submit incident reports with details and image evidence.</p>
+          </a>
+          <a href="#offline-directory" class="action-card" data-section="offline-directory">
+            <p class="action-card-title">Offline Contacts</p>
+            <p class="action-card-text">Search emergency contacts even without internet.</p>
+          </a>
+          <a href="#emergency-contacts" class="action-card" data-section="emergency-contacts">
+            <p class="action-card-title">Emergency Contacts</p>
+            <p class="action-card-text">Call key responders for urgent situations.</p>
+          </a>
+          <a href="#san-isidro-officials" class="action-card" data-section="san-isidro-officials">
+            <p class="action-card-title">Officials</p>
+            <p class="action-card-text">Find local leadership contacts and support channels.</p>
+          </a>
+          <a href="#incident-monitor" class="action-card" data-section="incident-monitor">
+            <p class="action-card-title">Incident Monitor</p>
+            <p class="action-card-text">Review synced reports from the central server.</p>
+          </a>
+        </div>
+      </section>
+
+      <header class="glass-panel mb-6 p-6">
+        <p class="text-sm tracking-[0.2em] text-blue-900/70">BARANGAY SAN ISIDRO, BOHOL</p>
+        <h2 class="section-heading mt-2 text-3xl font-bold text-blue-950 sm:text-4xl">
+          Community Safety Dashboard
+        </h2>
+        <p class="mt-3 max-w-3xl text-blue-900/80">
+          Offline-first reporting and emergency directory designed for unstable connectivity.
+        </p>
+        <div class="mt-4 flex flex-wrap items-center gap-3 text-sm">
+          <span class="secure-chip">Secure Mode Enabled</span>
+          <span id="roleStatus" class="status-pill status-idle">Role: Resident</span>
+          <span id="networkStatus" class="status-pill status-offline">Offline</span>
+          <span id="syncStatus" class="status-pill status-idle">Sync idle</span>
+        </div>
+
+        <p class="mt-4 text-sm text-blue-900/80" data-i18n="syncSimpleNote">Your report is saved on this device and will sync automatically when service is ready.</p>
+      </header>
+
+      <section id="actorCockpit" class="glass-panel mb-6 p-6">
+        <div class="actor-cockpit-head">
+          <p class="actor-cockpit-kicker">ROLE OVERVIEW</p>
+          <h3 id="actorWelcomeTitle" class="actor-cockpit-title">Welcome to your dashboard</h3>
+          <p id="actorWelcomeText" class="actor-cockpit-text">Your tools are prepared based on your assigned actor role.</p>
+        </div>
+
+        <article class="actor-primary-process">
+          <div>
+            <p class="actor-primary-kicker">START HERE</p>
+            <h4 id="actorPrimaryTitle" class="actor-primary-title">Important first process for your role</h4>
+            <p id="actorPrimaryText" class="actor-primary-text">This is your highest-priority workflow when opening the dashboard.</p>
+          </div>
+          <a id="actorPrimaryBtn" href="#incident-reporter" class="actor-primary-btn">Open Primary Process</a>
+        </article>
+
+        <div class="actor-metrics-grid">
+          <article class="actor-metric-card">
+            <p class="actor-metric-label">Primary Focus</p>
+            <p id="actorPrimaryFocus" class="actor-metric-value">Community requests</p>
+          </article>
+          <article class="actor-metric-card">
+            <p class="actor-metric-label">Sync Privilege</p>
+            <p id="actorSyncPrivilege" class="actor-metric-value">Standard sync</p>
+          </article>
+          <article class="actor-metric-card">
+            <p class="actor-metric-label">Visible Scope</p>
+            <p id="actorVisibleScope" class="actor-metric-value">Core services</p>
+          </article>
+        </div>
+
+        <div id="actorQuickActions" class="actor-action-row" aria-label="Role quick actions"></div>
+      </section>
+
+      <section class="grid gap-6 lg:grid-cols-2">
+        <article id="incident-reporter" class="glass-panel p-6">
+          <div class="mb-4 flex items-start justify-between gap-4">
+            <div>
+              <h2 class="section-heading text-xl font-semibold text-blue-950" data-i18n="localIncidentReporter">
+                Local Incident Reporter
+              </h2>
+              <p class="mt-1 text-sm text-blue-900/80" data-i18n="incidentReporterHint">Capture details and image evidence. Reports are saved even without internet.</p>
+            </div>
+          </div>
+
+          <form id="incidentForm" class="space-y-4" novalidate>
+            <div class="grid gap-3 sm:grid-cols-2">
+              <label class="block">
+                <span class="mb-1 block text-sm font-medium text-blue-950" data-i18n="incidentType">Incident Type</span>
+                <select id="incidentType" class="w-full rounded-xl border border-white/80 bg-white/70 p-3 text-blue-950 focus:border-blue-300 focus:outline-none" required>
+                  <option value="" data-i18n="selectType">Select type</option>
+                  <option value="medical" data-i18n="medical">Medical</option>
+                  <option value="fire" data-i18n="fire">Fire</option>
+                  <option value="crime" data-i18n="crime">Crime</option>
+                  <option value="disaster" data-i18n="disaster">Disaster</option>
+                  <option value="infrastructure" data-i18n="infrastructure">Infrastructure</option>
+                  <option value="other" data-i18n="other">Other</option>
+                </select>
+              </label>
+
+              <label class="block">
+                <span class="mb-1 block text-sm font-medium text-blue-950" data-i18n="severity">Severity</span>
+                <select id="incidentSeverity" class="w-full rounded-xl border border-white/80 bg-white/70 p-3 text-blue-950 focus:border-blue-300 focus:outline-none" required>
+                  <option value="" data-i18n="selectSeverity">Select severity</option>
+                  <option value="low" data-i18n="low">Low</option>
+                  <option value="medium" data-i18n="medium">Medium</option>
+                  <option value="high" data-i18n="high">High</option>
+                  <option value="critical" data-i18n="critical">Critical</option>
+                </select>
+              </label>
+            </div>
+
+            <label class="block">
+              <span class="mb-1 block text-sm font-medium text-blue-950" data-i18n="location">Location (GPS or manual)</span>
+              <input
+                id="incidentLocation"
+                type="text"
+                placeholder="Sitio/Purok, landmark, or street"
+                class="w-full rounded-xl border border-white/80 bg-white/70 p-3 text-blue-950 placeholder:text-blue-800/45 focus:border-blue-300 focus:outline-none"
+              />
+            </label>
+
+            <div class="flex flex-wrap gap-3">
+              <button id="captureLocationBtn" type="button" class="rounded-xl border border-blue-300/60 bg-white/70 px-4 py-2 text-sm font-semibold text-blue-900 transition hover:bg-white">
+                Use GPS
+              </button>
+              <button id="clearLocationBtn" type="button" class="rounded-xl border border-blue-300/60 bg-white/70 px-4 py-2 text-sm font-semibold text-blue-900 transition hover:bg-white">
+                Clear Location
+              </button>
+              <span id="locationStatus" class="status-pill status-idle">No GPS fix yet</span>
+            </div>
+
+            <label class="block">
+              <span class="mb-1 block text-sm font-medium text-blue-950" data-i18n="incidentDetails">Incident Details</span>
+              <textarea
+                id="incidentText"
+                rows="4"
+                required
+                placeholder="Describe what happened, where, and when..."
+                class="w-full rounded-xl border border-white/80 bg-white/70 p-3 text-blue-950 placeholder:text-blue-800/45 focus:border-blue-300 focus:outline-none"
+              ></textarea>
+            </label>
+
+            <label class="block">
+              <span class="mb-1 block text-sm font-medium text-blue-950" data-i18n="imageEvidence">Image Evidence (optional)</span>
+              <input
+                id="incidentImage"
+                type="file"
+                accept="image/*"
+                class="w-full rounded-xl border border-white/80 bg-white/70 p-2 text-sm text-blue-950 file:mr-3 file:rounded-lg file:border-0 file:bg-blue-600 file:px-3 file:py-2 file:text-white"
+              />
+            </label>
+
+            <img id="imagePreview" alt="Selected evidence preview" class="hidden max-h-52 w-full rounded-xl object-cover" />
+
+            <div class="flex gap-3">
+              <button
+                type="submit"
+                class="rounded-xl bg-blue-600 px-4 py-2 font-semibold text-white transition hover:bg-blue-500"
+                data-i18n="saveReport"
+              >
+                Save Report
+              </button>
+              <button
+                id="manualSyncBtn"
+                type="button"
+                class="rounded-xl border border-blue-300/60 px-4 py-2 font-semibold text-blue-900 transition hover:bg-white/80"
+                data-i18n="syncNow"
+              >
+                Sync Now
+              </button>
+            </div>
+          </form>
+
+          <div class="mt-6">
+            <h3 class="mb-3 text-lg font-semibold text-blue-950">Saved Reports</h3>
+            <ul id="incidentList" class="space-y-3"></ul>
+          </div>
+        </article>
+
+        <article id="offline-directory" class="glass-panel p-6">
+          <div class="mb-4">
+            <h2 class="section-heading text-xl font-semibold text-blue-950" data-i18n="offlineDirectory">
+              Searchable Offline Directory
+            </h2>
+            <p class="mt-1 text-sm text-blue-900/80" data-i18n="offlineDirectoryHint">Emergency contacts are pre-cached and searchable offline.</p>
+          </div>
+
+          <label class="mb-3 block">
+            <span class="mb-1 block text-sm font-medium text-blue-950" data-i18n="filterByService">Filter by service</span>
+            <select id="directoryFilter" class="w-full rounded-xl border border-white/80 bg-white/70 p-3 text-blue-950 focus:border-blue-300 focus:outline-none">
+              <option value="all" data-i18n="allServices">All services</option>
+              <option value="medical" data-i18n="medical">Medical</option>
+              <option value="police" data-i18n="police">Police</option>
+              <option value="fire" data-i18n="fire">Fire</option>
+              <option value="official" data-i18n="official">Official</option>
+              <option value="disaster" data-i18n="disaster">Disaster</option>
+            </select>
+          </label>
+
+          <label class="block">
+            <span class="mb-1 block text-sm font-medium text-blue-950" data-i18n="searchContacts">Search contacts</span>
+            <input
+              id="directorySearch"
+              type="search"
+              placeholder="Search by name, role, or number"
+              class="w-full rounded-xl border border-white/80 bg-white/70 p-3 text-blue-950 placeholder:text-blue-800/45 focus:border-blue-300 focus:outline-none"
+            />
+          </label>
+
+          <ul id="directoryList" class="mt-4 space-y-3"></ul>
+        </article>
+      </section>
+
+      <section id="emergency-contacts" class="glass-panel mt-6 p-6">
+        <div class="mb-4">
+          <h2 class="section-heading text-xl font-semibold text-blue-950">
+            Emergency Contacts
+          </h2>
+          <p class="mt-1 text-sm text-blue-900/80">Priority responders for immediate assistance.</p>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <a href="tel:117" class="contact-tile">
+            <p class="contact-tile-label">National Emergency</p>
+            <p class="contact-tile-number">117</p>
+          </a>
+          <a href="tel:911" class="contact-tile">
+            <p class="contact-tile-label">Emergency Hotline</p>
+            <p class="contact-tile-number">911</p>
+          </a>
+          <a href="tel:+639171234567" class="contact-tile">
+            <p class="contact-tile-label">Barangay Response Desk</p>
+            <p class="contact-tile-number">+63 917 123 4567</p>
+          </a>
+          <a href="tel:+639189876543" class="contact-tile">
+            <p class="contact-tile-label">Municipal Health Unit</p>
+            <p class="contact-tile-number">+63 918 987 6543</p>
+          </a>
+        </div>
+      </section>
+
+      <section id="san-isidro-officials" class="glass-panel mt-6 p-6">
+        <div class="mb-4">
+          <h2 class="section-heading text-xl font-semibold text-blue-950">
+            San Isidro Officials
+          </h2>
+          <p class="mt-1 text-sm text-blue-900/80">Leadership contacts for governance, coordination, and local support.</p>
+        </div>
+        <div class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          <article class="official-tile">
+            <p class="official-name">Hon. Maria Santos</p>
+            <p class="official-role">Punong Barangay</p>
+          </article>
+          <article class="official-tile">
+            <p class="official-name">Hon. Joel Ramirez</p>
+            <p class="official-role">Barangay Kagawad - Peace and Order</p>
+          </article>
+          <article class="official-tile">
+            <p class="official-name">Hon. Leila Mendoza</p>
+            <p class="official-role">Barangay Kagawad - Health and Welfare</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="incident-monitor" class="glass-panel mt-6 p-6 app-hidden">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div>
+            <h2 class="section-heading text-xl font-semibold text-blue-950">Server Incident Monitor</h2>
+            <p class="mt-1 text-sm text-blue-900/80">Review reports that have already reached central storage.</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="serverIncidentStatus" class="status-pill status-idle">Waiting to load</span>
+            <button
+              id="refreshServerIncidentsBtn"
+              type="button"
+              class="rounded-xl border border-blue-300/60 px-4 py-2 font-semibold text-blue-900 transition hover:bg-white/80"
+            >
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div class="grid gap-3 sm:grid-cols-3">
+          <label class="block sm:col-span-2">
+            <span class="mb-1 block text-sm font-medium text-blue-950">Search reports</span>
+            <input
+              id="serverIncidentSearch"
+              type="search"
+              placeholder="Search by ID, description, location, or reporter"
+              class="w-full rounded-xl border border-white/80 bg-white/70 p-3 text-blue-950 placeholder:text-blue-800/45 focus:border-blue-300 focus:outline-none"
+            />
+          </label>
+          <label class="block">
+            <span class="mb-1 block text-sm font-medium text-blue-950">Severity</span>
+            <select id="serverIncidentSeverityFilter" class="w-full rounded-xl border border-white/80 bg-white/70 p-3 text-blue-950 focus:border-blue-300 focus:outline-none">
+              <option value="all">All severities</option>
+              <option value="critical">Critical</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+          </label>
+        </div>
+
+        <ul id="serverIncidentList" class="mt-4 space-y-3"></ul>
+      </section>
+
+      <footer class="site-footer">
+        <p>Barangay San Isidro Safety Portal</p>
+        <p>Secure, offline-first reporting and emergency access for the community.</p>
+      </footer>
+    </main>
+
+    <div id="authModal" class="auth-modal" aria-hidden="true">
+      <div class="auth-modal-backdrop" data-auth-close="true"></div>
+      <section class="auth-modal-card glass-panel" role="dialog" aria-modal="true" aria-labelledby="authModalTitle">
+        <div class="auth-modal-head">
+          <p id="authModalEyebrow" class="auth-modal-eyebrow">Welcome Back</p>
+          <h2 id="authModalTitle" class="auth-modal-title">Sign in to continue</h2>
+          <button id="authModalCloseBtn" type="button" class="auth-modal-close" aria-label="Close dialog">x</button>
+        </div>
+
+        <p class="auth-modal-subtitle">Use your actor account to access role-based features.</p>
+
+        <form id="authForm" class="auth-form-shell" novalidate>
+          <label id="authNameField" class="auth-field app-hidden" for="authFullName">
+            <span>Full Name</span>
+            <input id="authFullName" type="text" autocomplete="name" />
+          </label>
+
+          <label class="auth-field" for="authEmail">
+            <span>Email Address</span>
+            <input id="authEmail" type="email" autocomplete="email" required />
+          </label>
+
+          <label id="authRoleField" class="auth-field" for="authRole">
+            <span>Actor Role</span>
+            <select id="authRole" required>
+              <option value="resident">Resident</option>
+              <option value="secretary">Secretary</option>
+              <option value="admin">Admin</option>
+              <option value="tanod">Tanod</option>
+              <option value="captain">Captain</option>
+            </select>
+          </label>
+
+          <label class="auth-field" for="authPassword">
+            <span>Password</span>
+            <input id="authPassword" type="password" autocomplete="current-password" minlength="8" required />
+          </label>
+
+          <label id="authConfirmField" class="auth-field app-hidden" for="authConfirmPassword">
+            <span>Confirm Password</span>
+            <input id="authConfirmPassword" type="password" autocomplete="new-password" minlength="8" />
+          </label>
+
+          <p id="authError" class="auth-error app-hidden"></p>
+
+          <button id="authSubmitBtn" type="submit" class="auth-submit-btn">Sign In</button>
+        </form>
+
+        <div class="auth-modal-foot">
+          <p id="authSwitchText">No account yet?</p>
+          <button id="authSwitchBtn" type="button" class="auth-switch-btn">Sign Up</button>
+        </div>
+      </section>
+    </div>
+
+    <template id="incidentItemTemplate">
+      <li class="incident-card rounded-xl border border-white/75 bg-white/50 p-3">
+        <div class="flex items-center justify-between gap-3">
+          <p class="incident-date text-xs text-blue-900/70"></p>
+          <span class="incident-state rounded-full px-2 py-1 text-xs font-semibold"></span>
+        </div>
+        <p class="incident-meta mt-2 text-xs font-semibold text-blue-800"></p>
+        <p class="incident-location mt-1 text-xs text-blue-900/75"></p>
+        <p class="incident-text mt-2 text-sm text-blue-950"></p>
+        <div class="incident-timeline mt-3">
+          <span class="timeline-step step-queued">Queued</span>
+          <span class="timeline-step step-processing">Processing</span>
+          <span class="timeline-step step-synced">Synced</span>
+        </div>
+        <img class="incident-image mt-3 hidden max-h-44 w-full rounded-lg object-cover" alt="Incident evidence" />
+      </li>
+    </template>
+
+    <template id="directoryItemTemplate">
+      <li class="rounded-xl border border-white/75 bg-white/50 p-3">
+        <p class="contact-name text-sm font-semibold text-blue-950"></p>
+        <p class="contact-role text-xs text-blue-900/75"></p>
+        <a class="contact-number mt-1 inline-block text-sm text-blue-700 underline" href="#"></a>
+      </li>
+    </template>
+
+    <script type="module" src="app.js"></script>
+  </body>
+</html>

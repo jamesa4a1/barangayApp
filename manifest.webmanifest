@@ -1,0 +1,31 @@
+{
+  "name": "San Isidro Safety",
+  "short_name": "SanIsidro",
+  "description": "Offline-first incident reporting and emergency directory for Barangay San Isidro, Bohol.",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#042f2e",
+  "theme_color": "#0f766e",
+  "icons": [
+    {
+      "src": "./assets/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "./assets/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "./assets/icons/icon-192.svg",
+      "sizes": "192x192",
+      "type": "image/svg+xml"
+    },
+    {
+      "src": "./assets/icons/icon-512.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml"
+    }
+  ]
+}

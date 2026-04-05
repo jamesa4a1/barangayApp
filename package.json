@@ -1,0 +1,16 @@
+{
+  "name": "san-isidro-pwa",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Offline-first PWA dashboard for Barangay San Isidro, Bohol",
+  "scripts": {
+    "start": "http-server . -p 8080 -c-1",
+    "start:host": "http-server . -p 8080 -c-1 -a 0.0.0.0",
+    "server:install": "npm --prefix server install",
+    "server:start": "npm --prefix server run start",
+    "dev:all": "powershell -NoProfile -ExecutionPolicy Bypass -Command \"Start-Process npm -ArgumentList 'run server:start' ; npm run start\""
+  },
+  "devDependencies": {
+    "http-server": "^14.1.1"
+  }
+}
