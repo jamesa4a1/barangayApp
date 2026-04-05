@@ -1,0 +1,44 @@
+[
+  {
+    "id": "c1",
+    "name": "Barangay Captain Maria Santos",
+    "role": "Barangay Captain",
+    "phone": "+639171112233",
+    "category": "official"
+  },
+  {
+    "id": "c2",
+    "name": "Kagawad Juan Dela Cruz",
+    "role": "Committee on Peace and Order",
+    "phone": "+639181234567",
+    "category": "official"
+  },
+  {
+    "id": "c3",
+    "name": "San Isidro Health Center",
+    "role": "Emergency Medical Assistance",
+    "phone": "+639195551111",
+    "category": "medical"
+  },
+  {
+    "id": "c4",
+    "name": "Bohol Provincial Police",
+    "role": "Police Assistance",
+    "phone": "166",
+    "category": "police"
+  },
+  {
+    "id": "c5",
+    "name": "Bohol Fire Station",
+    "role": "Fire and Rescue",
+    "phone": "160",
+    "category": "fire"
+  },
+  {
+    "id": "c6",
+    "name": "MDRRMO Bohol",
+    "role": "Disaster Response",
+    "phone": "+639209998877",
+    "category": "disaster"
+  }
+]
