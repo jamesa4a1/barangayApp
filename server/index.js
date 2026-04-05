@@ -38,6 +38,9 @@ app.use(
   })
 );
 
+app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
+
 app.get("/health", (_req, res) => {
   res.json({ ok: true, service: "san-isidro-sync-server", storage: "sqlite", dbPath: SQLITE_DB_PATH });
 });
@@ -173,6 +176,147 @@ app.post("/api/incidents", upload.single("image"), async (req, res) => {
   }
 });
 
+app.get("/api/notifications", async (req, res) => {
+  try {
+    const actorEmail = normalizeString(req.get("x-user-account"));
+    const limit = Number(req.query.limit || 100);
+
+    if (!actorEmail) {
+      return res.json({ count: 0, notifications: [] });
+    }
+
+    const notifications = await dbAll(
+      db,
+      `SELECT
+        notification_id AS id,
+        message,
+        actor_label AS actorLabel,
+        sender_email AS senderEmail,
+        created_at AS createdAt,
+        broadcast_at AS broadcastAt,
+        read_by AS readByJson
+      FROM process_notifications
+      ORDER BY broadcast_at DESC
+      LIMIT ?`,
+      [limit]
+    );
+
+    const enriched = notifications.map((notif) => {
+      let readByArray = [];
+      try {
+        readByArray = JSON.parse(notif.readByJson || "[]");
+      } catch {
+        readByArray = [];
+      }
+
+      return {
+        id: notif.id,
+        message: notif.message,
+        actorLabel: notif.actorLabel,
+        senderEmail: notif.senderEmail,
+        createdAt: notif.createdAt,
+        readBy: readByArray,
+      };
+    });
+
+    res.json({ count: enriched.length, notifications: enriched });
+  } catch (error) {
+    console.error("Failed to read notifications:", error);
+    res.status(500).json({ error: "Failed to read notifications" });
+  }
+});
+
+app.post("/api/notifications", async (req, res) => {
+  try {
+    verifyAuth(req);
+    verifySignature(req);
+
+    const body = getRequestBody(req);
+    const notificationId = normalizeString(body.id || body.notificationId);
+    const message = normalizeString(body.message);
+    const actorLabel = normalizeString(body.actorLabel);
+    const senderEmail = normalizeString(body.senderEmail);
+    const createdAt = normalizeString(body.createdAt);
+    const readBy = Array.isArray(body.readBy) ? body.readBy : [];
+
+    if (!notificationId || !message) {
+      return res.status(400).json({ error: "id and message are required" });
+    }
+
+    await dbRun(
+      db,
+      `INSERT OR REPLACE INTO process_notifications (
+        notification_id,
+        message,
+        actor_label,
+        sender_email,
+        created_at,
+        read_by
+      ) VALUES (?, ?, ?, ?, ?, ?)`,
+      [
+        notificationId,
+        message,
+        actorLabel || null,
+        senderEmail || "system@barangay",
+        createdAt || new Date().toISOString(),
+        JSON.stringify(readBy),
+      ]
+    );
+
+    res.status(201).json({ id: notificationId, status: "stored" });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    const message = error.message || (statusCode >= 500 ? "Internal server error" : "Unauthorized");
+    return res.status(statusCode).json({ error: message });
+  }
+});
+
+app.patch("/api/notifications/:id/read", async (req, res) => {
+  try {
+    verifyAuth(req);
+
+    const notificationId = normalizeString(req.params.id);
+    const actorEmail = normalizeString(req.get("x-user-account"));
+
+    if (!notificationId || !actorEmail) {
+      return res.status(400).json({ error: "Invalid notification id or actor email" });
+    }
+
+    const existing = await dbGet(
+      db,
+      `SELECT read_by FROM process_notifications WHERE notification_id = ?`,
+      [notificationId]
+    );
+
+    if (!existing) {
+      return res.status(404).json({ error: "Notification not found" });
+    }
+
+    let readByArray = [];
+    try {
+      readByArray = JSON.parse(existing.read_by || "[]");
+    } catch {
+      readByArray = [];
+    }
+
+    if (!readByArray.includes(actorEmail)) {
+      readByArray.push(actorEmail);
+    }
+
+    await dbRun(
+      db,
+      `UPDATE process_notifications SET read_by = ? WHERE notification_id = ?`,
+      [JSON.stringify(readByArray), notificationId]
+    );
+
+    res.json({ id: notificationId, status: "marked-read" });
+  } catch (error) {
+    const statusCode = error.statusCode || 500;
+    const message = error.message || (statusCode >= 500 ? "Internal server error" : "Unauthorized");
+    return res.status(statusCode).json({ error: message });
+  }
+});
+
 app.use((error, _req, res, _next) => {
   if (error instanceof multer.MulterError) {
     return res.status(400).json({ error: error.message });
@@ -275,6 +419,22 @@ async function initDatabase() {
 
   await dbRun(db, "CREATE INDEX IF NOT EXISTS idx_incident_reports_received_at ON incident_reports(received_at DESC)");
   await dbRun(db, "CREATE INDEX IF NOT EXISTS idx_incident_reports_created_at ON incident_reports(created_at DESC)");
+
+  await dbRun(
+    db,
+    `CREATE TABLE IF NOT EXISTS process_notifications (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      notification_id TEXT NOT NULL UNIQUE,
+      message TEXT NOT NULL,
+      actor_label TEXT,
+      sender_email TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      broadcast_at TEXT NOT NULL DEFAULT (datetime('now')),
+      read_by TEXT DEFAULT '[]'
+    )`
+  );
+
+  await dbRun(db, "CREATE INDEX IF NOT EXISTS idx_notifications_broadcast_at ON process_notifications(broadcast_at DESC)");
 }
 
 async function startServer() {

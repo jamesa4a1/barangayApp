@@ -10,7 +10,10 @@ import {
 } from "./db.js";
 
 const DEFAULT_SYNC_ENDPOINT = "http://localhost:4000/api/incidents";
+const DEFAULT_NOTIFICATIONS_ENDPOINT = "http://localhost:4000/api/notifications";
 const BG_SYNC_TAG = "sync-incidents";
+const NOTIFICATION_POLL_INTERVAL_MS = 8000;
+const NOTIFICATION_FETCH_LIMIT = 50;
 
 const networkStatusEl = document.getElementById("networkStatus");
 const syncStatusEl = document.getElementById("syncStatus");
@@ -65,6 +68,12 @@ const welcomeSignInBtnEl = document.getElementById("welcomeSignInBtn");
 const welcomeSignUpBtnEl = document.getElementById("welcomeSignUpBtn");
 const heroSignInBtnEl = document.getElementById("heroSignInBtn");
 const heroSignUpBtnEl = document.getElementById("heroSignUpBtn");
+const notificationShellEl = document.getElementById("notificationShell");
+const notificationToggleBtnEl = document.getElementById("notificationToggleBtn");
+const notificationPanelEl = document.getElementById("notificationPanel");
+const notificationUnreadBadgeEl = document.getElementById("notificationUnreadBadge");
+const notificationListEl = document.getElementById("notificationList");
+const notificationMarkAllBtnEl = document.getElementById("notificationMarkAllBtn");
 
 const authModalEl = document.getElementById("authModal");
 const authModalCloseBtnEl = document.getElementById("authModalCloseBtn");
@@ -86,6 +95,8 @@ const authSwitchBtnEl = document.getElementById("authSwitchBtn");
 
 const USER_STORE_KEY = "san-isidro-actor-users";
 const SESSION_STORE_KEY = "san-isidro-active-session";
+const NOTIFICATION_STORE_KEY = "san-isidro-process-notifications";
+const NOTIFICATION_MAX_ITEMS = 120;
 const TOAST_HIDE_DELAY_MS = 2800;
 
 const ROLE_PERMISSIONS = {
@@ -247,7 +258,13 @@ let syncConfig = {
   nonceHeader: "x-signature-nonce",
 };
 let remoteIncidentsCache = [];
+let notificationsCache = [];
+let notificationPanelOpen = false;
+let notificationChannel = null;
 let toastHideTimer = null;
+let notificationPollTimer = null;
+let backendNotificationsLastSync = 0;
+let isNotificationPollingActive = false;
 
 const I18N = {
   en: {
@@ -446,6 +463,435 @@ function clearSession() {
   }
 }
 
+function getNotificationActorId() {
+  return normalizeEmail(currentUser?.email) || "anonymous";
+}
+
+function loadStoredNotifications() {
+  try {
+    const raw = localStorage.getItem(NOTIFICATION_STORE_KEY);
+    if (!raw) {
+      return [];
+    }
+
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveStoredNotifications(items) {
+  try {
+    localStorage.setItem(NOTIFICATION_STORE_KEY, JSON.stringify(items.slice(0, NOTIFICATION_MAX_ITEMS)));
+  } catch {
+    // Ignore storage restrictions in locked browser environments.
+  }
+}
+
+function setNotificationPanelOpen(isOpen) {
+  if (!notificationToggleBtnEl || !notificationPanelEl) {
+    return;
+  }
+
+  notificationPanelOpen = Boolean(isOpen);
+  notificationPanelEl.classList.toggle("app-hidden", !notificationPanelOpen);
+  notificationToggleBtnEl.setAttribute("aria-expanded", String(notificationPanelOpen));
+
+  if (notificationPanelOpen) {
+    markAllNotificationsRead();
+  }
+}
+
+function getUnreadNotificationCount() {
+  const actorId = getNotificationActorId();
+  return notificationsCache.reduce((count, item) => {
+    const readBy = Array.isArray(item.readBy) ? item.readBy : [];
+    return readBy.includes(actorId) ? count : count + 1;
+  }, 0);
+}
+
+function updateNotificationBadge() {
+  if (!notificationUnreadBadgeEl) {
+    return;
+  }
+
+  const unreadCount = getUnreadNotificationCount();
+  notificationUnreadBadgeEl.textContent = String(unreadCount);
+  notificationUnreadBadgeEl.classList.toggle("app-hidden", unreadCount === 0);
+}
+
+function renderNotifications() {
+  if (!notificationListEl) {
+    return;
+  }
+
+  notificationListEl.innerHTML = "";
+
+  if (!notificationsCache.length) {
+    notificationListEl.innerHTML = '<li class="notification-empty">No new updates.</li>';
+    updateNotificationBadge();
+    return;
+  }
+
+  const actorId = getNotificationActorId();
+  const visibleItems = [...notificationsCache]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 30);
+
+  visibleItems.forEach((item) => {
+    const li = document.createElement("li");
+    const readBy = Array.isArray(item.readBy) ? item.readBy : [];
+    const isUnread = !readBy.includes(actorId);
+    li.className = `notification-item ${isUnread ? "notification-unread" : ""}`;
+
+    const messageEl = document.createElement("p");
+    messageEl.className = "notification-message";
+    messageEl.textContent = item.message;
+
+    const metaEl = document.createElement("p");
+    metaEl.className = "notification-meta";
+    metaEl.textContent = `${item.actorLabel || "System"} • ${formatDate(item.createdAt)}`;
+
+    li.appendChild(messageEl);
+    li.appendChild(metaEl);
+    notificationListEl.appendChild(li);
+  });
+
+  updateNotificationBadge();
+}
+
+function markAllNotificationsRead() {
+  if (!currentUser) {
+    return;
+  }
+
+  const actorId = getNotificationActorId();
+  let changed = false;
+  const unreadNotificationIds = [];
+
+  notificationsCache = notificationsCache.map((item) => {
+    const readBy = Array.isArray(item.readBy) ? [...item.readBy] : [];
+    if (!readBy.includes(actorId)) {
+      readBy.push(actorId);
+      unreadNotificationIds.push(item.id);
+      changed = true;
+    }
+
+    return {
+      ...item,
+      readBy,
+    };
+  });
+
+  if (changed) {
+    saveStoredNotifications(notificationsCache);
+
+    // Sync read status to backend for each notification
+    unreadNotificationIds.forEach((notificationId) => {
+      syncNotificationReadStatus(notificationId, true).catch(() => {
+        // Silently fail
+      });
+    });
+  }
+
+  renderNotifications();
+}
+
+function mergeIncomingNotification(item) {
+  if (!item || !item.id) {
+    return;
+  }
+
+  const existing = notificationsCache.find((note) => note.id === item.id);
+  if (existing) {
+    return;
+  }
+
+  notificationsCache.unshift(item);
+  notificationsCache = notificationsCache.slice(0, NOTIFICATION_MAX_ITEMS);
+  saveStoredNotifications(notificationsCache);
+  renderNotifications();
+}
+
+function pushProcessNotification(item, options = {}) {
+  const notification = {
+    id: item.id || crypto.randomUUID(),
+    message: item.message,
+    actorLabel: item.actorLabel || "Actor",
+    senderEmail: item.senderEmail || "",
+    createdAt: item.createdAt || new Date().toISOString(),
+    readBy: Array.isArray(item.readBy) ? item.readBy : [],
+  };
+
+  mergeIncomingNotification(notification);
+
+  if (options.broadcast && notificationChannel) {
+    notificationChannel.postMessage({ type: "PROCESS_NOTIFICATION", payload: notification });
+  }
+
+  // Send to backend for multi-device sync
+  sendNotificationToBackend(notification).catch(() => {
+    // Silently fail, notification is still stored locally
+  });
+}
+
+function notifyAllActorsProcessUpdate(context = {}) {
+  if (!currentUser) {
+    return;
+  }
+
+  const actorName = currentUser.fullName || "An actor";
+  const actorRole = getRoleLabel(currentUser.role);
+  const summaryParts = [context.incidentType, context.severity].filter(Boolean);
+  const summary = summaryParts.length ? ` (${summaryParts.join(" / ")})` : "";
+
+  pushProcessNotification(
+    {
+      message: `${actorName} sent a process update to all actors${summary}.`,
+      actorLabel: `${actorName} (${actorRole})`,
+      senderEmail: normalizeEmail(currentUser.email),
+      readBy: [getNotificationActorId()],
+    },
+    { broadcast: true }
+  );
+}
+
+function initializeNotificationSystem() {
+  notificationsCache = loadStoredNotifications();
+  renderNotifications();
+
+  if ("BroadcastChannel" in window) {
+    notificationChannel = new BroadcastChannel("san-isidro-process-notifications");
+    notificationChannel.addEventListener("message", (event) => {
+      const data = event.data;
+      if (!data || data.type !== "PROCESS_NOTIFICATION") {
+        return;
+      }
+
+      mergeIncomingNotification(data.payload);
+    });
+  }
+
+  window.addEventListener("storage", (event) => {
+    if (event.key !== NOTIFICATION_STORE_KEY) {
+      return;
+    }
+
+    notificationsCache = loadStoredNotifications();
+    renderNotifications();
+  });
+}
+
+async function fetchBackendNotifications() {
+  if (!currentUser || !navigator.onLine) {
+    return [];
+  }
+
+  const config = getEffectiveSyncConfig();
+  const notificationsEndpoint = buildNotificationsEndpoint(config.endpoint);
+
+  try {
+    const response = await fetch(notificationsEndpoint, {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        ...getRoleHeaders(),
+      },
+    });
+
+    if (!response.ok) {
+      return [];
+    }
+
+    const data = await response.json();
+    const notifications = Array.isArray(data.notifications) ? data.notifications : [];
+    return notifications;
+  } catch (error) {
+    console.warn("Failed to fetch backend notifications:", error);
+    return [];
+  }
+}
+
+function buildNotificationsEndpoint(incidentsEndpoint) {
+  if (!incidentsEndpoint) {
+    return DEFAULT_NOTIFICATIONS_ENDPOINT;
+  }
+
+  const urlStr = String(incidentsEndpoint).trim();
+  if (urlStr.endsWith("/api/incidents")) {
+    return urlStr.replace("/api/incidents", "/api/notifications");
+  }
+
+  if (urlStr.endsWith("/incidents")) {
+    return urlStr.replace("/incidents", "/notifications");
+  }
+
+  if (!urlStr.includes("://")) {
+    return DEFAULT_NOTIFICATIONS_ENDPOINT;
+  }
+
+  try {
+    const url = new URL(urlStr);
+    url.pathname = url.pathname.replace(/\/api\/incidents\/?$/, "/api/notifications");
+    if (url.pathname === "/" || url.pathname === "") {
+      url.pathname = "/api/notifications";
+    }
+    return url.toString();
+  } catch {
+    return DEFAULT_NOTIFICATIONS_ENDPOINT;
+  }
+}
+
+async function mergeBackendNotifications(backendNotifications) {
+  if (!Array.isArray(backendNotifications) || !backendNotifications.length) {
+    return;
+  }
+
+  const actorId = getNotificationActorId();
+  let hasChanges = false;
+
+  const backendIds = new Set(backendNotifications.map((n) => n.id));
+  const localIds = new Set(notificationsCache.map((n) => n.id));
+
+  // Add new backend notifications to local cache
+  for (const backendNotif of backendNotifications) {
+    if (!localIds.has(backendNotif.id)) {
+      const enriched = {
+        id: backendNotif.id,
+        message: backendNotif.message,
+        actorLabel: backendNotif.actorLabel,
+        senderEmail: backendNotif.senderEmail,
+        createdAt: backendNotif.createdAt,
+        readBy: Array.isArray(backendNotif.readBy) ? backendNotif.readBy : [],
+     };
+
+      notificationsCache.unshift(enriched);
+      hasChanges = true;
+    } else {
+      // Update readBy status for existing notifications
+      const existing = notificationsCache.find((n) => n.id === backendNotif.id);
+      if (existing) {
+        const backendReadBy = Array.isArray(backendNotif.readBy) ? backendNotif.readBy : [];
+        const wasUnread = !existing.readBy.includes(actorId);
+        const isNowRead = backendReadBy.includes(actorId);
+
+        if (wasUnread && isNowRead) {
+          existing.readBy = backendReadBy;
+          hasChanges = true;
+        }
+      }
+    }
+  }
+
+  if (hasChanges) {
+    notificationsCache = notificationsCache.slice(0, NOTIFICATION_MAX_ITEMS);
+    saveStoredNotifications(notificationsCache);
+    renderNotifications();
+  }
+}
+
+async function sendNotificationToBackend(notification) {
+  if (!currentUser || !navigator.onLine) {
+    return false;
+  }
+
+  const config = getEffectiveSyncConfig();
+  const notificationsEndpoint = buildNotificationsEndpoint(config.endpoint);
+
+  try {
+    const response = await fetch(notificationsEndpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        ...getRoleHeaders(),
+        ...getAuthHeaders(config),
+      },
+      body: JSON.stringify({
+        id: notification.id,
+        message: notification.message,
+        actorLabel: notification.actorLabel,
+        senderEmail: notification.senderEmail,
+        createdAt: notification.createdAt,
+        readBy: notification.readBy || [],
+      }),
+    });
+
+    if (!response.ok) {
+      return false;
+    }
+
+    return true;
+  } catch (error) {
+    console.warn("Failed to send notification to backend:", error);
+    return false;
+  }
+}
+
+async function syncNotificationReadStatus(notificationId, isRead) {
+  if (!currentUser || !navigator.onLine) {
+    return;
+  }
+
+  const config = getEffectiveSyncConfig();
+  const endpoint = buildNotificationsEndpoint(config.endpoint);
+  const readEndpoint = `${endpoint}/${notificationId}/read`;
+
+  try {
+    await fetch(readEndpoint, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+        ...getRoleHeaders(),
+        ...getAuthHeaders(config),
+      },
+    });
+  } catch (error) {
+    console.warn("Failed to sync notification read status:", error);
+  }
+}
+
+async function pollBackendNotifications() {
+  if (!currentUser || !navigator.onLine || isNotificationPollingActive) {
+    return;
+  }
+
+  const now = Date.now();
+  if (now - backendNotificationsLastSync < NOTIFICATION_POLL_INTERVAL_MS) {
+    return;
+  }
+
+  isNotificationPollingActive = true;
+  backendNotificationsLastSync = now;
+
+  try {
+    const backendNotifications = await fetchBackendNotifications();
+    await mergeBackendNotifications(backendNotifications);
+  } finally {
+    isNotificationPollingActive = false;
+  }
+}
+
+function startNotificationPolling() {
+  if (notificationPollTimer) {
+    return;
+  }
+
+  notificationPollTimer = setInterval(() => {
+    pollBackendNotifications();
+  }, NOTIFICATION_POLL_INTERVAL_MS);
+
+  // Initial poll
+  pollBackendNotifications();
+}
+
+function stopNotificationPolling() {
+  if (notificationPollTimer) {
+    clearInterval(notificationPollTimer);
+    notificationPollTimer = null;
+  }
+}
+
 function setAuthModalOpen(isOpen) {
   if (!authModalEl) {
     return;
@@ -474,6 +920,14 @@ function bindHeaderMenuEvents() {
     setHeaderMenuOpen(!headerMenuOpen);
   });
 
+  notificationToggleBtnEl?.addEventListener("click", () => {
+    setNotificationPanelOpen(!notificationPanelOpen);
+  });
+
+  notificationMarkAllBtnEl?.addEventListener("click", () => {
+    markAllNotificationsRead();
+  });
+
   document.addEventListener("click", (event) => {
     const target = event.target;
     if (!(target instanceof Node)) {
@@ -481,15 +935,22 @@ function bindHeaderMenuEvents() {
     }
 
     const clickedInsideMenu = headerMenuDropdownEl.contains(target);
-    const clickedToggle = headerMenuToggleBtnEl.contains(target);
-    if (!clickedInsideMenu && !clickedToggle) {
+    const clickedMenuToggle = headerMenuToggleBtnEl.contains(target);
+    if (!clickedInsideMenu && !clickedMenuToggle) {
       setHeaderMenuOpen(false);
+    }
+
+    const clickedInsideNotifications = notificationPanelEl?.contains(target) || false;
+    const clickedNotificationToggle = notificationToggleBtnEl?.contains(target) || false;
+    if (!clickedInsideNotifications && !clickedNotificationToggle) {
+      setNotificationPanelOpen(false);
     }
   });
 
   document.addEventListener("keydown", (event) => {
     if (event.key === "Escape") {
       setHeaderMenuOpen(false);
+      setNotificationPanelOpen(false);
     }
   });
 }
@@ -558,7 +1019,9 @@ function setAuthenticatedState(user) {
   const isAuthenticated = Boolean(user);
   headerAuthGroupEl.classList.toggle("app-hidden", isAuthenticated);
   headerUserGroupEl.classList.toggle("app-hidden", !isAuthenticated);
+  notificationShellEl?.classList.toggle("app-hidden", !isAuthenticated);
   setHeaderMenuOpen(false);
+  setNotificationPanelOpen(false);
 
   if (isAuthenticated) {
     headerUserNameEl.textContent = `${user.fullName} (${getRoleLabel(user.role)})`;
@@ -569,6 +1032,9 @@ function setAuthenticatedState(user) {
       welcomeAboutEl.classList.add("app-hidden");
     }
     dashboardAppEl.classList.remove("app-hidden");
+    notificationsCache = loadStoredNotifications();
+    renderNotifications();
+    startNotificationPolling();
   } else {
     headerUserNameEl.textContent = "";
     if (welcomePageEl) {
@@ -578,6 +1044,7 @@ function setAuthenticatedState(user) {
       welcomeAboutEl.classList.remove("app-hidden");
     }
     dashboardAppEl.classList.add("app-hidden");
+    stopNotificationPolling();
   }
 
   applyRole(currentRole);
@@ -1668,6 +2135,10 @@ incidentForm.addEventListener("submit", async (event) => {
   };
 
   await saveIncident(incident);
+  notifyAllActorsProcessUpdate({
+    incidentType,
+    severity,
+  });
 
   incidentForm.reset();
   locationMeta = null;
@@ -1822,6 +2293,7 @@ window.addEventListener("offline", () => {
 
 (async function init() {
   ensureSeedUsers();
+  initializeNotificationSystem();
   bindHeaderMenuEvents();
   bindAuthEvents();
   await registerServiceWorker();

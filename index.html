@@ -31,19 +31,41 @@
           </a>
 
           <div class="header-tools">
+            <div id="notificationShell" class="notification-shell app-hidden">
+              <button
+                id="notificationToggleBtn"
+                type="button"
+                class="notification-toggle"
+                aria-label="Open notifications"
+                aria-expanded="false"
+                aria-controls="notificationPanel"
+              >
+                <span class="notification-bell" aria-hidden="true">🔔</span>
+                <span id="notificationUnreadBadge" class="notification-unread-badge app-hidden">0</span>
+              </button>
+
+              <div id="notificationPanel" class="notification-panel app-hidden" aria-label="Actor notifications">
+                <div class="notification-head">
+                  <p class="notification-title">Notifications</p>
+                  <button id="notificationMarkAllBtn" type="button" class="notification-mark-btn">Mark all read</button>
+                </div>
+                <ul id="notificationList" class="notification-list"></ul>
+              </div>
+            </div>
+
             <div class="header-menu-shell">
-            <button
-              id="headerMenuToggleBtn"
-              type="button"
-              class="header-menu-toggle"
-              aria-label="Open account and language menu"
-              aria-expanded="false"
-              aria-controls="headerMenuDropdown"
-            >
-              <span class="burger-line"></span>
-              <span class="burger-line"></span>
-              <span class="burger-line"></span>
-            </button>
+              <button
+                id="headerMenuToggleBtn"
+                type="button"
+                class="header-menu-toggle"
+                aria-label="Open account and language menu"
+                aria-expanded="false"
+                aria-controls="headerMenuDropdown"
+              >
+                <span class="burger-line"></span>
+                <span class="burger-line"></span>
+                <span class="burger-line"></span>
+              </button>
 
               <div id="headerMenuDropdown" class="header-menu-dropdown app-hidden" aria-label="Header controls">
                 <label class="lang-switch-wrap" for="languageSelect">

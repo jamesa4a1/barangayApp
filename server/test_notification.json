@@ -1,0 +1,8 @@
+{
+  "id": "test-notif-001",
+  "message": "Test multi-device notification",
+  "actorLabel": "Admin User",
+  "senderEmail": "admin@barangay.local",
+  "createdAt": "2026-04-05T12:00:00Z",
+  "readBy": []
+}
